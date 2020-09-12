@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+
+	<canvas id="gameCanvas" width="800" height="600">
+			
+	</canvas>
+
+	<script>
+
+	var canvas; //Janela do jogo
+	var canvasContext; // Conteudo do jogo
+	var ballX = 50; // Coordenada X da bola
+	var ballSpeedX = 5; // Velocidade da bola para os lados. Incrementando pixels horizontalmente
+	var ballY = 50; // Coordenada Y da bola
+	var ballSpeedY = 4; // Velocidade da bola para cima e para baixo. Incrementando pixels verticalmente
+
+	var player1Score = 0;
+	var player2Score = 0;
+	const WINSCORE = 3;
+
+	var showWinScreen = false;
+
+	var paddle1Y =250;
+	var paddle2Y =250;
+	const PADDLE_THICKNESS = 10;
+	const PADDLE_HEIGHT = 100;
+
+	// Calcula as coordedas no mouse (x,y) DENTRO da tela, ignorando o scroll
+	function calculateMousePos(evt){
+		var rect = canvas.getBoundingClientRect();
+		var root = document.documentElement;
+		var mouseX = evt.clientX - rect.left - root.scrollLeft;
+		var mouseY = evt.clientY - rect.top - root.scrollTop;
+		return 	{
+			x: mouseX,
+			y: mouseY
+		}
+	}
+
+		window.onload = function(){
+			//Buscando canvas e definindo context (x,y)
+			canvas = document.getElementById('gameCanvas');
+			canvasContext = canvas.getContext('2d');
+
+			// A cada framesPerSecond, as funcoes move e draw sao chamadas
+			var framesPerSecond = 30;
+			setInterval(function(){
+				moveElements();
+				drawElements();
+			}, 1000/framesPerSecond);
+
+			canvas.addEventListener('mousedown', function(){
+				showWinScreen = false;
+				player1Score = 0;
+				player2Score = 0;
+			});
+
+			canvas.addEventListener('mousemove',
+				function(evt){
+					var mousePos = calculateMousePos(evt); // Retorna um objeto com as cordenadas no mouse
+					paddle1Y = mousePos.y - (PADDLE_HEIGHT / 2);
+			});
+		}
+
+		function ballReset(){
+			if (player1Score >= WINSCORE || player2Score >= WINSCORE){
+				showWinScreen = true;
+			}
+			ballX = canvas.width/2;
+			ballY = canvas.height/2;
+			ballSpeedY = 5;
+		}
+
+		function computerMovement(){
+			var paddle2Center = paddle2Y + (PADDLE_HEIGHT/2);
+			if (paddle2Center < ballY-35){
+				paddle2Y += 6;
+			} else if (paddle2Center > ballY+35){
+				paddle2Y -= 6;
+			}
+		}
+
+		// Calcula nova posicao dos elementos
+		function moveElements(){
+			if (showWinScreen){
+				return
+			}
+
+			computerMovement();
+
+			ballX += ballSpeedX; // -->
+			ballY += ballSpeedY // v
+
+			if (ballX < 0) {
+				if (ballY > paddle1Y && ballY < paddle1Y+PADDLE_HEIGHT){
+					ballSpeedX = - ballSpeedX; // --> -ballSpeedX(-ballSpeedX) = +ballSpeedX
+
+					var deltaY = ballY - (paddle1Y+PADDLE_HEIGHT/2);
+					ballSpeedY = deltaY * 0.33;
+
+				} else {
+					player2Score++; // Precisamos adicionar antes de resetar a bola
+					ballReset();
+				}
+			}
+
+			if (ballX > canvas.width) { // <--
+				if(ballY > paddle2Y && ballY < paddle2Y+PADDLE_HEIGHT){
+					ballSpeedX = - ballSpeedX;
+
+					var deltaY = ballY - (paddle2Y+PADDLE_HEIGHT/2);
+					ballSpeedY = deltaY * 0.33;
+
+				} else {
+					player1Score++; // Precisamos adicionar antes de resetar a bola
+					ballReset();
+				}
+			}
+
+
+			if (ballY < 0) {
+				ballSpeedY = - ballSpeedY; // v -ballSpeedY(-ballSpeedY) = +ballSpeedY
+			}
+
+			if (ballY > canvas.height) { // ^
+				ballSpeedY = - ballSpeedY;
+			}
+		}
+
+		function drawNet(){
+			for(var i = 0 ; i < canvas.height ; i+=40){
+				colorRect(canvas.width/2-1,i,2,20,'White');
+				console.log('a');
+			}
+		}
+
+		// Desenha os elementos na tela
+		function drawElements(){
+			if (showWinScreen){
+				colorRect(0,0,canvas.width,canvas.height,'black');
+				canvasContext.fillStyle = 'white';
+				canvasContext.fillText("Score",390, 185);
+				canvasContext.fillText(player1Score,382,200);
+				canvasContext.fillText(player2Score,canvas.width-380,200);
+				if(player1Score >= WINSCORE){
+					canvasContext.fillText("Player1 venceu!",370,220);
+				} else {
+					canvasContext.fillText("Player2 venceu!",370,220);
+				}
+				canvasContext.fillText("Clique para continuar!",360,450);
+
+				return
+			}
+
+			// Cria tela preta com tamanho (800X600) do elemento canvas
+			colorRect(0,0,canvas.width,canvas.height,'Black');
+			// Raquete do jogador da esquerda
+			colorRect(0,paddle1Y,PADDLE_THICKNESS,PADDLE_HEIGHT,'White');
+			// Raquete do jogador da direita
+			colorRect(canvas.width-PADDLE_THICKNESS,paddle2Y,PADDLE_THICKNESS,PADDLE_HEIGHT,'White');
+			// Bola de tenis
+			colorCircle(ballX, ballY, 10, 'White');
+
+			canvasContext.fillText(player1Score,100,100);
+			canvasContext.fillText(player2Score,canvas.width-100,100);
+
+
+			drawNet();
+		}
+
+		function colorCircle(centerX, centerY, radius, color){
+			canvasContext.fillStyle = color;
+			canvasContext.beginPath();
+			canvasContext.arc(centerX,centerY,radius,0,Math.PI*2, true); // (x, y, raio, graus, quadrante);
+			canvasContext.fill();
+		}
+
+		function colorRect(leftX, topY, width, height, drawColor){
+			canvasContext.fillStyle = drawColor;
+			canvasContext.fillRect(leftX,topY,width,height);
+		}
+	</script>
+</body>
+</html>
